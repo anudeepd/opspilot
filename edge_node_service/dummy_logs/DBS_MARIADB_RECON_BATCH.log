@@ -1,0 +1,16 @@
+[2024-11-04 18:02:11] INFO: Starting DBS_MARIADB_RECON_BATCH for date=2024-11-04 mode=full
+[2024-11-04 18:02:14] INFO: Connecting to mariadb-prod-01:3306/recon_db
+[2024-11-04 18:02:15] INFO: Processing 8421 accounts for date 2024-11-04
+[2024-11-04 18:02:44] WARN: Query elapsed > 60s for account_id=ACC-0042981 (elapsed=67s)
+[2024-11-04 18:03:52] WARN: Query elapsed > 60s for account_id=ACC-0087234 (elapsed=71s)
+[2024-11-04 18:05:10] WARN: Query elapsed > 60s for account_id=ACC-0019823 (elapsed=65s)
+[2024-11-04 18:07:33] WARN: Query elapsed > 60s for account_id=ACC-0056789 (elapsed=68s)
+[2024-11-04 18:09:15] WARN: DB host mariadb-prod-01 CPU alert: 82% (threshold 80%)
+[2024-11-04 18:11:42] WARN: Query elapsed > 60s for account_id=ACC-0031204 (elapsed=74s)
+[2024-11-04 18:13:05] WARN: DB host mariadb-prod-01 CPU alert: 91% (threshold 80%)
+[2024-11-04 18:15:22] ERROR: CPU usage on mariadb-prod-01 reported at 96% — DBA alert triggered
+[2024-11-04 18:17:44] WARN: Query elapsed > 120s for account_id=ACC-0078123 (elapsed=133s) — possible full table scan
+[2024-11-04 18:20:01] ERROR: DBA alert: slow query log shows SELECT * FROM trades WHERE account_id=? — NO INDEX on account_id
+[2024-11-04 18:22:11] ERROR: AWSBHV019E Job DBS_MARIADB_RECON_BATCH exceeded wallclock limit (1200s) on host edge-node-01
+[2024-11-04 18:22:12] ERROR: TWS terminated job process — exit code 134
+[2024-11-04 18:22:12] ERROR: AWSBHV031E Job DBS_MARIADB_RECON_BATCH ABEND on host edge-node-01 RC=134

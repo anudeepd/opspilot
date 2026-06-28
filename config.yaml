@@ -1,0 +1,106 @@
+# OpsPilot Configuration
+# Dummy configs - replace with real values later
+
+version: "1.0.0"
+
+# Run mode: "local" bypasses MCP for Bitbucket/Jira and serves from local dummy files.
+# "production" connects to real MCP servers (Bitbucket + Jira).
+# Embeddings are controlled separately via embedding.provider.
+run_mode: "local"
+
+# LLM Configuration
+llm:
+  provider: "vertexai"
+  model: "gemini-2.5-flash"
+  temperature: 0.0
+  max_tokens: 4096
+
+# Auth Configuration
+# auth_url: endpoint that returns a JSON body containing an id_token (JWT).
+# The token is used as the Bearer token for downstream API calls (e.g. embeddings).
+auth:
+  auth_url: "https://replace-me.dbs.com/auth/token"   # TODO: set real URL
+  userid: "your-userid"
+  password: "your-password"
+  otp: "your-otp"
+  otp_type: "your-otp-type"
+  ssl_verify: false
+
+# Embedding Configuration
+embedding:
+  # Toggle: "local" uses sentence-transformers offline; "vertexai" uses the remote API
+  provider: "local"
+
+  # --- Local provider settings (used when provider: local) ---
+  # local_model: "BAAI/bge-large-en-v1.5"  # Auto-download from HuggingFace
+  # Or use local path to the snapshot folder directly:
+  local_model: "BAAI/bge-large-en-v1.5"
+  device: "cpu"
+  normalize_embeddings: true
+
+  # --- Vertex AI provider settings (used when provider: vertexai) ---
+  model: "text-embeddings-004"
+  api_url: "https://somedbsurl.com/v1/projects/somedbsproject/locations/asia-southeast1/publishers/google/models/text-embeddings-004:predict"
+  task_type: "SEMANTIC_SIMILARITY"
+  ssl_verify: false
+
+# Bitbucket Configuration - TWS Jobs Repository
+bitbucket:
+  repo_slug: "dbs-tws-jobs"              # The repo containing TWS job scripts
+  repo_path: "jobs"                       # Path within repo where job scripts are stored
+  default_branch: "main"
+
+# MCP Server Configurations
+mcp:
+  bitbucket:
+    name: "atlassian-bitbucket-mcp"
+    transport: "stdio"
+    command: "/path/to/bitbucket-mcp"
+    args: []
+    env:
+      BITBUCKET_USERNAME: "dummy-user"
+      BITBUCKET_APP_PASSWORD: "dummy-password"
+      BITBUCKET_WORKSPACE: "dbs-bank"
+
+  jira:
+    name: "atlassian-jira-mcp"
+    transport: "stdio"
+    command: "/path/to/jira-mcp"
+    args: []
+    env:
+      JIRA_URL: "https://dbs.atlassian.net"
+      JIRA_USERNAME: "dummy-user"
+      JIRA_API_TOKEN: "dummy-token"
+
+# Jira Configuration
+jira:
+  project_key: "DBSOPS"                  # Project key for TWS-related tickets
+  default_search_limit: 10
+
+# Edge Node Configuration (for local testing)
+edge_nodes:
+  - name: "local-edge"
+    host: "localhost"
+    port: 5000
+    scripts_path: "./edge_node_service/dummy_scripts"
+    logs_path: "./edge_node_service/dummy_logs"
+
+# Vector DB Configuration - ChromaDB
+vector_db:
+  provider: "chromadb"
+  persist_directory: "./chroma_data"
+  collection_name: "ichamp_tickets"
+  embedding_dimension: 1024  # 1024 for BAAI/bge-large-en-v1.5; 768 for vertexai text-embeddings-004
+
+# iChamp API Configuration
+ichamp:
+  api_url: "https://ichamp.dbs.com/api"
+  auth_type: "oauth2"
+  client_id: "dummy-client-id"
+  client_secret: "dummy-secret"
+
+# Resolution Thresholds
+resolution:
+  min_confidence: 0.5
+  max_historical_results: 5
+  fallback_to_escalation: true

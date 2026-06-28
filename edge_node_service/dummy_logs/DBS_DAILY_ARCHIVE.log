@@ -1,0 +1,8 @@
+[2024-11-01 02:00:01] INFO: Starting DBS_DAILY_ARCHIVE for date: 2024-11-01
+[2024-11-01 02:00:02] INFO: Checking helper script: /jobs/utils/compress_and_move.sh
+[2024-11-01 02:00:02] ERROR: /jobs/utils/compress_and_move.sh is not executable or does not exist
+[2024-11-01 02:00:02] ERROR: File permissions: -rw-r--r-- 1 tws tws 4821 Nov 01 01:55 compress_and_move.sh
+[2024-11-01 02:00:02] ERROR: Expected mode 0755, got 0644 — chmod +x not applied during deployment
+[2024-11-01 02:00:02] ERROR: Fix: chmod +x /jobs/utils/compress_and_move.sh
+[2024-11-01 02:00:02] ERROR: Job terminated with exit code 126
+[2024-11-01 02:00:02] ERROR: AWSBHV031E Job DBS_DAILY_ARCHIVE ABEND on host edge-node-01 RC=126

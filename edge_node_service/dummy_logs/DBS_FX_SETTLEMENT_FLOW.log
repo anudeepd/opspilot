@@ -1,0 +1,10 @@
+[2024-11-02 16:30:00] INFO: Starting DBS_FX_SETTLEMENT_FLOW for date=2024-11-02 currency=SGD
+[2024-11-02 16:30:01] INFO: Checking predecessor DBS_FX_NETTING_CALC status via TWS conman
+[2024-11-02 16:30:05] WARN: Predecessor DBS_FX_NETTING_CALC is in HOLD state
+[2024-11-02 16:30:05] ERROR: Cannot proceed with settlement — predecessor job did not complete successfully
+[2024-11-02 16:30:05] ERROR: AWSBHV026E Job stream FX_SETTLEMENT not submitted — predecessor DBS_FX_NETTING_CALC did not complete successfully
+[2024-11-02 16:30:05] ERROR: Resolution: Release HOLD on DBS_FX_NETTING_CALC via TWS console
+[2024-11-02 16:30:05] ERROR:   conman command: release job;jb=DBS_FX_NETTING_CALC
+[2024-11-02 16:30:05] ERROR: After release: monitor DBS_FX_NETTING_CALC to COMPLETE, then resubmit settlement
+[2024-11-02 16:30:05] ERROR: Job terminated with exit code 2
+[2024-11-02 16:30:05] ERROR: AWSBHV031E Job DBS_FX_SETTLEMENT_FLOW ABEND on host fx-node-01 RC=2

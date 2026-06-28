@@ -1,0 +1,12 @@
+[2024-10-30 22:00:05] INFO: Starting DBS_CREDIT_SCORE_CALC for date=2024-10-30
+[2024-10-30 22:00:05] INFO: Python interpreter: /usr/bin/python (Python 2.7.18)
+[2024-10-30 22:00:06] ERROR: Traceback (most recent call last):
+[2024-10-30 22:00:06] ERROR:   File "/jobs/DBS_CREDIT_SCORE_CALC.py", line 34
+[2024-10-30 22:00:06] ERROR:     while chunk := customers[:CHUNK_SIZE]:
+[2024-10-30 22:00:06] ERROR:                ^
+[2024-10-30 22:00:06] ERROR: SyntaxError: invalid syntax
+[2024-10-30 22:00:06] ERROR: Root cause: walrus operator (:=) requires Python 3.8+. TWS JOBCMD uses /usr/bin/python (Python 2.7)
+[2024-10-30 22:00:06] ERROR: Fix: Update TWS JOBCMD from '/usr/bin/python' to '/usr/bin/python3'
+[2024-10-30 22:00:06] ERROR: Verify: python3 --version on execution host should return Python 3.8+
+[2024-10-30 22:00:06] ERROR: Job terminated with exit code 1
+[2024-10-30 22:00:06] ERROR: AWSBHV031E Job DBS_CREDIT_SCORE_CALC ABEND on host batch-node-02 RC=1

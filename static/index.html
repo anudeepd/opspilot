@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpsPilot — TWS Operations Intelligence</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:       #DA291C;
+      --red-dim:   #a01f15;
+      --red-glow:  rgba(218,41,28,0.15);
+      --bg:        #0c0c0e;
+      --surface:   #141416;
+      --surface2:  #1c1c1f;
+      --border:    rgba(255,255,255,0.07);
+      --border-red:rgba(218,41,28,0.35);
+      --text:      #f0ede8;
+      --muted:     #6b6870;
+      --mono:      'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
+      --sans:      'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2.5rem;
+      height: 60px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .dbs-mark {
+      width: 38px;
+      height: 38px;
+      background: var(--red);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    .logo-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border);
+    }
+
+    .product-name {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .product-sub {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .status-dot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2ecc71;
+      box-shadow: 0 0 6px #2ecc71;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      min-height: 0;
+    }
+
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .panel-header {
+      padding: 1.75rem 2rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 0.4rem;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    form {
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      flex: 1;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    input, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      padding: 0.65rem 0.85rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+      resize: none;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: var(--muted);
+      opacity: 0.6;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--border-red);
+      box-shadow: 0 0 0 3px var(--red-glow);
+    }
+
+    textarea.mono {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .submit-btn {
+      margin-top: 0.5rem;
+      background: var(--red);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      cursor: pointer;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 0.85rem 1.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .submit-btn:hover:not(:disabled) { background: #c02218; }
+    .submit-btn:active:not(:disabled) { transform: scale(0.99); }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .submit-btn.loading .btn-spinner { display: block; }
+    .submit-btn.loading .btn-text { opacity: 0.7; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      padding: 3rem;
+      opacity: 0.35;
+    }
+
+    .empty-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3px;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-grid-cell {
+      width: 22px;
+      height: 22px;
+      border-radius: 3px;
+      background: var(--muted);
+    }
+
+    .empty-grid-cell:nth-child(2),
+    .empty-grid-cell:nth-child(5) { background: var(--red); opacity: 0.6; }
+
+    .empty-state p {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── LOADING STATE ── */
+    .loading-state {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 3rem;
+    }
+
+    .pulse-ring {
+      position: relative;
+      width: 56px;
+      height: 56px;
+    }
+
+    .pulse-ring::before,
+    .pulse-ring::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--red);
+      animation: pulse-out 1.6s ease-out infinite;
+    }
+
+    .pulse-ring::after { animation-delay: 0.8s; }
+
+    .pulse-core {
+      position: absolute;
+      inset: 14px;
+      background: var(--red);
+      border-radius: 50%;
+    }
+
+    @keyframes pulse-out {
+      0%   { transform: scale(0.6); opacity: 1; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    .loading-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 240px;
+    }
+
+    .loading-step {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0;
+      animation: fade-step 0.4s ease forwards;
+    }
+
+    .loading-step .step-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .loading-step.active { color: var(--text); }
+    .loading-step.active .step-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+    @keyframes fade-step { to { opacity: 1; } }
+
+    /* ── RESULTS ── */
+    .results-panel {
+      display: none;
+      flex-direction: column;
+      padding: 2rem 2.5rem;
+      gap: 1.25rem;
+      animation: results-in 0.4s ease;
+    }
+
+    @keyframes results-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .results-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .results-job {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .results-id {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .confidence-badge {
+      padding: 0.3rem 0.75rem;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .confidence-high    { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.25); }
+    .confidence-moderate { background: rgba(243,156,18,0.12); color: #f39c12; border: 1px solid rgba(243,156,18,0.25); }
+    .confidence-low     { background: rgba(218,41,28,0.12); color: var(--red); border: 1px solid var(--border-red); }
+
+    /* ── ESCALATION ALERT ── */
+    .escalation-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      background: rgba(218,41,28,0.08);
+      border: 1px solid var(--border-red);
+      border-left: 3px solid var(--red);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+    }
+
+    .alert-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .alert-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red);
+      margin-bottom: 0.2rem;
+    }
+
+    .alert-body {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    .card-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: var(--red-glow);
+      border: 1px solid var(--border-red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    .root-cause-text {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    /* Actions list */
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.7rem 0.85rem;
+      background: var(--surface2);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      font-size: 13px;
+      line-height: 1.5;
+      animation: action-in 0.3s ease both;
+    }
+
+    @keyframes action-in {
+      from { opacity: 0; transform: translateX(-6px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .action-num {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--red);
+      font-weight: 500;
+      margin-top: 2px;
+      flex-shrink: 0;
+      min-width: 18px;
+    }
+
+    /* Evidence grid */
+    .evidence-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .evidence-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .evidence-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .evidence-value {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .evidence-value.bool-true  { color: #2ecc71; }
+    .evidence-value.bool-false { color: var(--muted); }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 0.75rem 2.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .footer-text {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    .processing-time {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* ── SCROLLBARS ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── REFERENCE TOGGLES ── */
+    .ref-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      text-transform: uppercase;
+      transition: border-color 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .ref-toggle:hover { border-color: var(--border-red); color: var(--text); }
+
+    .ref-drawer {
+      display: none;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .ref-chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 7px;
+    }
+
+    .ref-path {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 5px;
+      word-break: break-all;
+      line-height: 1.4;
+    }
+
+    /* ── DEEP ANALYSIS CARD ── */
+    .analysis-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 0;
+      text-transform: uppercase;
+      transition: color 0.15s;
+      margin-left: auto;
+    }
+    .analysis-toggle:hover { color: var(--text); }
+    .analysis-toggle .toggle-arrow {
+      display: inline-block;
+      transition: transform 0.2s;
+      font-size: 9px;
+    }
+    .analysis-toggle.open .toggle-arrow { transform: rotate(90deg); }
+
+    .analysis-body {
+      display: none;
+      padding: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .analysis-body.open { display: block; }
+
+    .analysis-text {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+
+    .analysis-text strong, .analysis-text b {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* ── FAILURE TYPE TAG ── */
+    .failure-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 0.4rem;
+      width: fit-content;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-group">
+    <svg height="22" viewBox="0 0 94 28" xmlns="http://www.w3.org/2000/svg" aria-label="DBS Bank"><g fill="none" fill-rule="evenodd"><path d="m4.45698 22.731h17.88336v-18.064h-17.88336z" fill="#fff"/><path d="m21.75624 22.164-6.48945-5.497s-.87912-.867-1.86516-.867c-.99594 0-1.87506.867-1.87506.867l-6.48747 5.497-.02079-.019 5.44302-6.555s.85635-.885.85635-1.893c0-.998-.85635-1.884-.85635-1.884l-5.44302-6.56.02079-.023 6.48747 5.503s.87912.869 1.87506.869c.98604 0 1.86516-.869 1.86516-.869l6.48945-5.503.02673.029-5.45391 6.554s-.85041.886-.85041 1.884c0 1.008.85041 1.893.85041 1.893l5.45391 6.553zm3.03633-8.467v-.002c0-1.777.07128-3.37 1.3761-6.168.37719-.814 1.21176-2-.01782-3.384-.99891-1.006-2.13345-.841-2.89773-.396.43956-.772.60291-1.923-.39501-2.933-1.36917-1.238-2.54727-.397-3.34917-.014-2.77299 1.321-4.34214 1.394-6.10731 1.394-1.7721 0-3.34323-.073-6.11028-1.394-.80586-.383-1.98891-1.224-3.35412.014-.99792 1.01-.82962 2.161-.39006 2.933-.76626-.447-1.90278-.61-2.90268.396-1.22859 1.384-.39006 2.57-.0198 3.384 1.31274 2.798 1.38501 4.391 1.38501 6.17 0 1.784-.07227 3.381-1.38501 6.177-.37026.808-1.20879 2.002.0198 3.385.9999 1.003 2.13642.837 2.90268.397-.43956.774-.60786 1.922.39006 2.922 1.36521 1.247 2.54826.404 3.35412.021 2.76903-1.32 4.33818-1.39 6.11028-1.39 1.76517 0 3.33432.07 6.10632 1.39.80289.383 1.98099 1.226 3.35016-.021.99792-1 .83061-2.148.39303-2.922.76626.44 1.9008.612 2.89971-.397 1.22958-1.383.39501-2.577.01782-3.385-1.30482-2.8-1.3761-4.393-1.3761-6.177z" fill="#DA291C"/><path d="m45.96471 24.186c2.22453-.805 4.97772-4.639 4.52133-10.677-.43956-5.841-2.64429-10.43-8.51499-10.861 0 0-1.11177-.081-2.04336-.085-.99891-.007-1.21275-.041-1.287 1.037-.12771 2.017-.16434 17.726-.03663 19.993.01485.311.04851 1.057 1.32957 1.188 2.34234.229 4.27977.045 6.03108-.595zm-2.27106-22.533c4.96782-.023 11.50479 3.417 11.47905 12.011-.01683 7.475-5.36085 12.079-10.296 12.079l-12.53241.003.01584-.267c.70488-.127 1.49688-.571 1.62855-1.045.41481-1.801.32076-18.279.0693-20.993-.0792-.849-.7425-1.396-1.54737-1.53l-.02475-.258s10.09503.006 11.20779 0zm27.47745 18.185c.099-5.177-3.65805-6.55-7.54875-6.765-.08118-.006-.05049-.2.0099-.21 1.26423-.051 6.29046-.639 6.08652-5.489-.20394-4.726-3.75309-4.832-5.05098-4.852-1.0593-.014-1.28997-.014-1.73745.008-.75339.033-.94149.089-.93753.915 0 .105-.16533 8.514-.26433 14.426-.04653 3.213-.0594 5.687-.0594 5.687.01881.589-.05346 1.186 1.38204 1.254 1.48203.073 3.39273.135 4.73022-.152 1.22463-.264 3.3066-1.17 3.38976-4.822zm-1.53747-6.96c5.84397 1.463 6.19641 5.724 6.11523 6.922-.2673 5.335-4.74606 5.946-6.54984 5.946h-13.78674l.01584-.269c1.00188-.139 1.75329-.693 1.75329-2.471l.08118-18.373c.02277-1.992-.49599-2.601-1.58796-2.731l-.02475-.249h10.4247c1.91367 0 7.67646-.384 8.1675 4.967.39006 4.282-4.26789 6.071-4.60845 6.258zm22.47993-11.152.23661-.002.08118 4.293-.26037-.002c-.41877-1.748-2.08197-3.396-5.41728-3.568-3.93921-.209-5.64201 2.162-5.66775 4.406-.02277 2.982 2.28096 3.598 5.69349 4.439 1.60776.397 7.56558 1.182 7.0884 7.944-.33066 4.723-4.36788 6.969-10.08414 6.791 0 0-2.37501-.08-5.6925-1.009-.6138-.176-.77715.033-1.02366.49l-.27126.014.00891-4.629.26235.013c.13068.469.16731 1.342 1.00881 2.082.61281.546 2.05326 1.894 5.21235 1.929 3.10068.042 5.67072-1.28 6.01524-4.794.09405-.945-.00495-3.108-2.09583-4.094-1.63548-.772-6.17661-1.281-8.37738-3.23 0 0-2.61063-1.837-2.19879-5.266.57816-4.846 4.58271-6.058 8.18037-6.132 0 0 3.21849-.032 5.78259.637 0 0 .62766.172 1.14741-.028.21087-.071.30987-.204.37125-.284z" fill="#fff"/></g></svg>
+    <div class="logo-divider"></div>
+    <div>
+      <div class="product-name">OpsPilot</div>
+      <div class="product-sub">TWS Operations Intelligence</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-dot">
+      <div class="dot"></div>
+      System Operational
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: INPUT FORM -->
+  <div class="left-panel">
+    <div class="panel-header">
+      <div class="panel-label">New Investigation</div>
+      <div class="panel-title">Submit Job Failure</div>
+    </div>
+    <form id="investigateForm">
+      <div class="field">
+        <label for="ticket_id">Ticket ID</label>
+        <input type="text" id="ticket_id" name="ticket_id" placeholder="INC-20240812-001" required />
+      </div>
+      <div class="field">
+        <label for="job_name">Job Name</label>
+        <input type="text" id="job_name" name="job_name" placeholder="DBS_RECON_EOD_SG" required />
+      </div>
+      <div class="field">
+        <label for="script_name">Script Name <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input type="text" id="script_name" name="script_name" placeholder="DBS_MARIADB_RECON_BATCH.py" />
+      </div>
+      <div class="field">
+        <label for="command">Command <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input type="text" id="command" name="command" class="mono" placeholder="python3 /jobs/DBS_JOB.py --date 2024-11-04" style="font-size:12px" />
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3" placeholder="Describe the failure symptom…" required></textarea>
+      </div>
+      <div class="field">
+        <label for="tws_log">TWS Log Output</label>
+        <textarea id="tws_log" name="tws_log" rows="7" class="mono" placeholder="Paste relevant TWS log lines here…" required></textarea>
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">
+        <div class="btn-spinner"></div>
+        <span class="btn-text">Investigate Failure</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- RIGHT: RESULTS -->
+  <div class="right-panel" id="rightPanel">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-grid">
+        <div class="empty-grid-cell"></div>
+        <div class="empty-grid-cell"></div>
+        <div class="empty-grid-cell"></div>
+        <div class="empty-grid-cell"></div>
+        <div class="empty-grid-cell"></div>
+        <div class="empty-grid-cell"></div>
+      </div>
+      <p>Submit a job failure to begin<br />AI-assisted root cause analysis</p>
+    </div>
+
+    <!-- Loading state -->
+    <div class="loading-state" id="loadingState">
+      <div class="pulse-ring"><div class="pulse-core"></div></div>
+      <div class="loading-steps" id="loadingSteps"></div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-panel" id="resultsPanel"></div>
+
+  </div>
+</main>
+
+<footer>
+  <div class="footer-text">DBS Bank · Technology &amp; Operations · IBM TWS Job Failure Intelligence</div>
+  <div class="processing-time" id="processingTime"></div>
+</footer>
+
+<script>
+  const API = 'http://localhost:8000';
+
+  const steps = [
+    'Searching historical tickets…',
+    'Fetching Bitbucket job config…',
+    'Querying edge node script…',
+    'Analysing Jira intelligence…',
+    'Running deep log analysis…',
+    'Synthesising resolution…',
+  ];
+
+  let stepTimer = null;
+
+  function showLoading() {
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('resultsPanel').style.display = 'none';
+    const ls = document.getElementById('loadingState');
+    ls.style.display = 'flex';
+
+    const container = document.getElementById('loadingSteps');
+    container.innerHTML = '';
+    let i = 0;
+
+    function addStep() {
+      if (i >= steps.length) return;
+      const el = document.createElement('div');
+      el.className = 'loading-step active';
+      el.style.animationDelay = `${i * 0.15}s`;
+      el.innerHTML = `<div class="step-dot"></div><span>${steps[i]}</span>`;
+      container.appendChild(el);
+      i++;
+      stepTimer = setTimeout(addStep, 900);
+    }
+    addStep();
+  }
+
+  function stopLoading() {
+    clearTimeout(stepTimer);
+    document.getElementById('loadingState').style.display = 'none';
+  }
+
+  function confidenceClass(c) {
+    if (!c) return '';
+    const v = c.toLowerCase();
+    if (v === 'high') return 'confidence-high';
+    if (v === 'moderate') return 'confidence-moderate';
+    return 'confidence-low';
+  }
+
+  function renderResults(data) {
+    stopLoading();
+    const panel = document.getElementById('resultsPanel');
+
+    const actions = (data.recommended_actions || []).map((a, i) =>
+      `<div class="action-item" style="animation-delay:${i*0.08}s">
+         <span class="action-num">${String(i+1).padStart(2,'0')}</span>
+         <span>${a}</span>
+       </div>`
+    ).join('');
+
+    const ev = data.evidence || {};
+    const boolVal = (v) => v
+      ? `<span class="evidence-value bool-true">✓</span>`
+      : `<span class="evidence-value bool-false">—</span>`;
+
+    let _refSeq = 0;
+    function refToggle(ids) {
+      if (!ids || ids.length === 0) return '';
+      const uid = 'rd' + (++_refSeq);
+      const chips = ids.map(id => `<span class="ref-chip">${id}</span>`).join('');
+      return `<button class="ref-toggle" onclick="
+        var d=document.getElementById('${uid}');
+        var open=d.style.display==='flex';
+        d.style.display=open?'none':'flex';
+        this.textContent=open?'view':'hide';
+      ">view</button><div id="${uid}" class="ref-drawer">${chips}</div>`;
+    }
+    function refPath(path) {
+      return path ? `<div class="ref-path">${path}</div>` : '';
+    }
+
+    const escalation = data.escalation_needed
+      ? `<div class="escalation-alert">
+           <div class="alert-icon">⚠</div>
+           <div>
+             <div class="alert-title">Escalation Required</div>
+             <div class="alert-body">Confidence is insufficient for automated resolution. Please escalate to L2 or the development team for manual review.</div>
+           </div>
+         </div>`
+      : '';
+
+    panel.innerHTML = `
+      <div class="results-header">
+        <div class="results-meta">
+          <div class="results-job">${data.job_name || '—'}</div>
+          <div class="results-id">${data.ticket_id || ''}</div>
+          <div class="failure-tag">${(data.failure_type || 'unknown').replace(/_/g,' ')}</div>
+        </div>
+        <div class="confidence-badge ${confidenceClass(data.confidence)}">${(data.confidence || '—').toUpperCase()}</div>
+      </div>
+
+      ${escalation}
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">◎</div>
+          <div class="card-label">Root Cause</div>
+        </div>
+        <div class="card-body">
+          <div class="root-cause-text">${data.root_cause || 'Unable to determine.'}</div>
+        </div>
+      </div>
+
+      ${data.log_analysis ? `
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">⊞</div>
+          <div class="card-label">Deep Analysis</div>
+          <button class="analysis-toggle" id="analysisToggle" onclick="
+            const body = document.getElementById('analysisBody');
+            const btn  = document.getElementById('analysisToggle');
+            const open = body.classList.toggle('open');
+            btn.classList.toggle('open', open);
+            btn.querySelector('.toggle-label').textContent = open ? 'collapse' : 'expand';
+          ">
+            <span class="toggle-arrow">▶</span>
+            <span class="toggle-label">expand</span>
+          </button>
+        </div>
+        <div class="analysis-body" id="analysisBody">
+          <div class="analysis-text">${data.log_analysis.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')}</div>
+        </div>
+      </div>` : ''}
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">▶</div>
+          <div class="card-label">Recommended Actions</div>
+        </div>
+        <div class="card-body">
+          <div class="action-list">${actions || '<span style="color:var(--muted);font-size:13px">No actions available.</span>'}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon">◈</div>
+          <div class="card-label">Evidence</div>
+        </div>
+        <div class="card-body">
+          <div class="evidence-grid">
+            <div class="evidence-item">
+              <div class="evidence-label">Historical Tickets</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <div class="evidence-value">${ev.historical_tickets ?? '—'}</div>
+                ${refToggle(ev.historical_ticket_ids)}
+              </div>
+            </div>
+            <div class="evidence-item">
+              <div class="evidence-label">Jira Tickets</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <div class="evidence-value">${ev.jira_tickets ?? '—'}</div>
+                ${refToggle(ev.jira_ticket_keys)}
+              </div>
+            </div>
+            <div class="evidence-item">
+              <div class="evidence-label">Edge Node Script</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                ${boolVal(ev.edge_node_available)}
+                ${refToggle(ev.edge_node_ref ? [ev.edge_node_ref] : [])}
+              </div>
+            </div>
+            <div class="evidence-item">
+              <div class="evidence-label">Bitbucket Config</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                ${boolVal(ev.bitbucket_config)}
+                ${refToggle(ev.bitbucket_ref ? [ev.bitbucket_ref] : [])}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    panel.style.display = 'flex';
+    if (data.processing_time_ms) {
+      document.getElementById('processingTime').textContent =
+        `Resolved in ${(data.processing_time_ms / 1000).toFixed(1)}s`;
+    }
+  }
+
+  function showError(msg) {
+    stopLoading();
+    const panel = document.getElementById('resultsPanel');
+    panel.innerHTML = `
+      <div class="escalation-alert" style="margin:2rem">
+        <div class="alert-icon">✕</div>
+        <div>
+          <div class="alert-title">Request Failed</div>
+          <div class="alert-body">${msg}</div>
+        </div>
+      </div>`;
+    panel.style.display = 'flex';
+  }
+
+  document.getElementById('investigateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.classList.add('loading');
+    btn.disabled = true;
+    document.getElementById('processingTime').textContent = '';
+    showLoading();
+
+    const payload = {
+      ticket_id:   document.getElementById('ticket_id').value.trim(),
+      job_name:    document.getElementById('job_name').value.trim(),
+      description: document.getElementById('description').value.trim(),
+      tws_log:     document.getElementById('tws_log').value.trim(),
+      script_name: document.getElementById('script_name').value.trim() || null,
+      command:     document.getElementById('command').value.trim() || null,
+    };
+
+    try {
+      const res = await fetch(`${API}/investigate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      renderResults(data);
+    } catch (err) {
+      showError(err.message || 'Unknown error. Is the OpsPilot server running?');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

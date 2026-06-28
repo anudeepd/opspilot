@@ -1,0 +1,9 @@
+[2024-03-15 02:00:00] INFO: Starting job DBS_RISK_CALC_BATCH
+[2024-03-15 02:00:05] INFO: Data volume check: 3500000 records (month-end)
+[2024-03-15 02:01:00] INFO: Processing instruments: BOND, DERIVATIVE, EQUITY, FX, COMMODITY
+[2024-03-15 02:30:00] INFO: Processing additional instruments: CRYPTO, NFT (recently added)
+[2024-03-15 03:30:00] WARNING: Elapsed time exceeds expected duration (90 min)
+[2024-03-15 03:45:00] WARNING: AWSTWS018W Job DBS_RISK_CALC_BATCH exceeded expected duration threshold
+[2024-03-15 04:00:00] WARNING: Current elapsed: 120 min, Status: RUNNING
+[2024-03-15 05:30:00] WARNING: CPU at 94% on host rsk-edge-02
+[2024-03-15 05:30:05] WARNING: AWSTWS018W Job DBS_RISK_CALC_BATCH exceeded expected duration threshold (90 min). Current elapsed: 210 min. Status: RUNNING

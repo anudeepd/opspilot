@@ -1,0 +1,18 @@
+[2024-11-03 20:01:05] INFO: spark-submit DBS_SPARK_RISK_AGGREGATION.py --date 2024-11-03 submitted to YARN
+[2024-11-03 20:01:22] INFO: Application ID: application_1699990800000_0142
+[2024-11-03 20:01:45] INFO: Loading positions data for date 2024-11-03 from HDFS
+[2024-11-03 20:02:01] INFO: Positions count: 2,187,432 — Risk factors count: 48,291
+[2024-11-03 20:02:15] INFO: Starting join operation (Stage 4)
+[2024-11-03 20:03:41] WARN: Shuffle write size: 18.3 GB across 42 partitions — partitions may be too large
+[2024-11-03 20:04:18] WARN: Executor 3 (host yarn-node-03) lost: java.lang.OutOfMemoryError: GC overhead limit exceeded
+[2024-11-03 20:04:18] WARN: GC time on executor 3: 98.7% — heap under severe pressure
+[2024-11-03 20:04:19] WARN: Executor 5 (host yarn-node-05) lost: java.lang.OutOfMemoryError: Java heap space
+[2024-11-03 20:04:19] ERROR: Stage 4 attempt 0 failed: ExecutorLostFailure (executor 3 exited)
+[2024-11-03 20:04:20] INFO: Retrying Stage 4 attempt 1 (1 of 4 max retries)
+[2024-11-03 20:04:21] ERROR: org.apache.spark.shuffle.FetchFailedException: Failed to connect to yarn-node-03/10.10.1.33:41234
+[2024-11-03 20:04:21] ERROR: Stage 4 attempt 1 failed — executor 5 shuffle block unavailable
+[2024-11-03 20:04:22] ERROR: Stage 4 failed after 2 attempts. Aborting job.
+[2024-11-03 20:04:23] ERROR: Job DBS_SPARK_RISK_AGGREGATION ABEND — application_1699990800000_0142 FAILED
+[2024-11-03 20:04:23] ERROR: AWSBHV031E Job DBS_SPARK_RISK_AGGREGATION ABEND on host spark-submit-host RC=1
+[2024-11-03 20:04:23] INFO: Spark executor memory at failure: spark.executor.memory=1g (default — not configured)
+[2024-11-03 20:04:23] INFO: Recommendation: Set spark.executor.memory=6g and add repartition(200) before join

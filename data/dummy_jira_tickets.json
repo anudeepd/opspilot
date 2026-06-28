@@ -1,0 +1,287 @@
+[
+  {
+    "key": "OPS-1001",
+    "ticket_key": "OPS-1001",
+    "summary": "DBS_MARIADB_RECON_BATCH — CPU spike 96% due to missing index on account_id",
+    "status": "Resolved",
+    "priority": "High",
+    "description": "Batch reconciliation job DBS_MARIADB_RECON_BATCH exceeded wallclock limit (1200s). MariaDB CPU at 96%. EXPLAIN showed full table scan on trades table — no index on account_id column. Job ABEND RC=134.",
+    "root_cause": "Missing index on account_id in trades table — full table scan per iteration in reconciliation loop",
+    "workaround": "Kill runaway DB session via KILL QUERY <session_id>. Restart job after off-peak hours.",
+    "fix_details": "Added composite index trades(account_id, trade_date). Rewrote bulk INSERT to executemany(). Job now completes in 8 minutes with CPU peak at 22%.",
+    "labels": ["mariadb", "cpu-spike", "DBS_MARIADB_RECON_BATCH", "batch"],
+    "comments": [
+      {
+        "author": "John Tan",
+        "created": "2024-11-04T18:35:00",
+        "body": "Checked DBA team alert. Slow query log shows SELECT * FROM trades WHERE account_id=? taking 68s each. No index on account_id. Full scan on 12M row table."
+      },
+      {
+        "author": "Alice Lim",
+        "created": "2024-11-04T18:55:00",
+        "body": "Created index: CREATE INDEX idx_trades_account_date ON trades(account_id, trade_date). EXPLAIN now shows type=ref, rows=142. Also rewrote INSERT loop to use executemany()."
+      },
+      {
+        "author": "John Tan",
+        "created": "2024-11-04T19:15:00",
+        "body": "Job re-ran. Completed in 8 minutes. CPU peaked at 22%. Closing ticket. Adding index to change log for next deployment."
+      }
+    ]
+  },
+  {
+    "key": "OPS-1002",
+    "ticket_key": "OPS-1002",
+    "summary": "DBS_MARIADB_RECON_BATCH — N+1 query pattern causing full-table scan inside loop",
+    "status": "Resolved",
+    "priority": "High",
+    "description": "Runaway SELECT inside reconciliation loop. Script queries account status for each trade individually instead of batch-fetching. 1 query per trade row = 8400 queries for 8400 trades. Each query does full table scan on accounts table. DB host CPU 98%.",
+    "root_cause": "N+1 query pattern — per-row account status lookup without batch pre-fetch or index",
+    "workaround": "Kill runaway queries. Delay job restart.",
+    "fix_details": "Pre-fetch all needed account statuses in single SELECT before loop. account_map = fetch_all_accounts(conn). Loop uses account_map.get(account_id) — zero DB queries inside loop.",
+    "labels": ["mariadb", "cpu-spike", "n-plus-one", "DBS_MARIADB_RECON_BATCH"],
+    "comments": [
+      {
+        "author": "Alice Lim",
+        "created": "2024-10-18T17:00:00",
+        "body": "Performance dashboard showed 98% CPU for 20 minutes. SHOW PROCESSLIST: 420 active queries all against accounts table. All identical: SELECT status FROM accounts WHERE account_id=?"
+      },
+      {
+        "author": "David Lee",
+        "created": "2024-10-18T17:30:00",
+        "body": "Identified N+1 pattern in DBS_MARIADB_RECON_BATCH.py line 78. Moving account lookup before the for-loop. One batch SELECT replaces 8400 individual queries."
+      },
+      {
+        "author": "Alice Lim",
+        "created": "2024-10-18T18:30:00",
+        "body": "Fix deployed. Job re-ran. 6 minutes, CPU 18%. Closed."
+      }
+    ]
+  },
+  {
+    "key": "OPS-2001",
+    "ticket_key": "OPS-2001",
+    "summary": "DBS_SPARK_RISK_AGGREGATION — executor OOM on large DataFrame join",
+    "status": "Resolved",
+    "priority": "Critical",
+    "description": "PySpark risk aggregation job ABEND. Executors 3 and 5 lost with java.lang.OutOfMemoryError: GC overhead limit exceeded. Stage 4 join between positions_df (2.1GB) and risk_factors_df (800MB). spark.executor.memory not set (default 1g). FetchFailedException in shuffle.",
+    "root_cause": "Default executor memory (1g) insufficient for 2.1GB + 800MB join. Missing repartition before join.",
+    "workaround": "Submit with increased memory: spark-submit --conf spark.executor.memory=6g",
+    "fix_details": "Set spark.executor.memory=6g and spark.executor.cores=4. Added positions_df.repartition(200) before join. Replaced df.collect() with df.write.parquet(). Job completes in 14 minutes.",
+    "labels": ["spark", "oom", "DBS_SPARK_RISK_AGGREGATION", "yarn"],
+    "comments": [
+      {
+        "author": "Bob Tan",
+        "created": "2024-11-03T20:10:00",
+        "body": "Spark UI shows Stage 4 failed. Executors 3 and 5 lost with OOM. spark.executor.memory not configured — defaulting to 1g. positions_df is 2.1GB, risk_factors_df 800MB. No repartition before join."
+      },
+      {
+        "author": "Carol Wong",
+        "created": "2024-11-03T20:30:00",
+        "body": "Shuffle write was 18GB before crash. Need repartition(200) before the join and executor memory to at least 6g."
+      },
+      {
+        "author": "Bob Tan",
+        "created": "2024-11-03T21:15:00",
+        "body": "Fixed and resubmitted. spark.executor.memory=6g, repartition(200) added, collect() replaced with parquet write. Completed in 14 min. Closing."
+      }
+    ]
+  },
+  {
+    "key": "OPS-2002",
+    "ticket_key": "OPS-2002",
+    "summary": "DBS_SPARK_RISK_AGGREGATION — skewed partition on currency_code causing executor OOM",
+    "status": "Resolved",
+    "priority": "High",
+    "description": "Single executor OOM while others idle. Partition skew on currency_code GroupBy — SGD bucket contains 94% of records (1.8M vs <50K for other currencies). Executor 7 heap exhausted processing SGD partition alone.",
+    "root_cause": "Highly skewed data distribution on currency_code — SGD dominates, one executor processes 94% of data",
+    "workaround": "Increase spark.executor.memory to 12g as temporary measure.",
+    "fix_details": "Applied salting: append random suffix 0-9 to currency_code before GroupBy, then aggregate to remove salt. Partition sizes balanced: max 220K, min 95K.",
+    "labels": ["spark", "oom", "skew", "DBS_SPARK_RISK_AGGREGATION"],
+    "comments": [
+      {
+        "author": "Carol Wong",
+        "created": "2024-10-20T09:00:00",
+        "body": "Ran df.groupBy('currency_code').count().show(). SGD: 1,823,421. USD: 47,221. EUR: 31,008. Data is extremely skewed. One executor doing 94% of work."
+      },
+      {
+        "author": "Frank Lim",
+        "created": "2024-10-20T09:45:00",
+        "body": "Implemented salting pattern: currency_salt = currency_code + '_' + str(random.randint(0,9)). GroupBy on salted key, then re-aggregate. Testing now."
+      },
+      {
+        "author": "Carol Wong",
+        "created": "2024-10-20T10:30:00",
+        "body": "Salting worked. Partition sizes balanced. Job completed in 22 minutes. Closed."
+      }
+    ]
+  },
+  {
+    "key": "OPS-3001",
+    "ticket_key": "OPS-3001",
+    "summary": "DBS_DAILY_ARCHIVE — ABEND RC=126 permission denied on compress_and_move.sh",
+    "status": "Resolved",
+    "priority": "Medium",
+    "description": "DBS_DAILY_ARCHIVE.sh failed with exit code 126. Error: ./compress_and_move.sh: Permission denied at line 47. Script uses set -e so exits immediately on non-zero. Deployment pipeline copies scripts without applying chmod +x.",
+    "root_cause": "chmod +x not applied to helper script after deploy — file mode 0644 instead of 0755",
+    "workaround": "SSH to edge node and run: chmod +x /jobs/compress_and_move.sh. Then manually resubmit job.",
+    "fix_details": "Updated Ansible deploy playbook: file module with mode=0755 for all .sh files. Added post-deploy permission verification.",
+    "labels": ["shell", "permission", "DBS_DAILY_ARCHIVE", "chmod"],
+    "comments": [
+      {
+        "author": "Alice Lim",
+        "created": "2024-11-01T02:05:00",
+        "body": "TWS log: './compress_and_move.sh: Permission denied'. Checked permissions on edge node: -rw-r--r-- 1 tws tws 4821 Nov 01 01:55 compress_and_move.sh. Missing execute bit."
+      },
+      {
+        "author": "John Tan",
+        "created": "2024-11-01T02:15:00",
+        "body": "chmod +x /jobs/compress_and_move.sh applied. Job resubmitted and completed in 3 minutes. Ansible playbook missing mode=0755. Fixing now."
+      },
+      {
+        "author": "Alice Lim",
+        "created": "2024-11-01T02:45:00",
+        "body": "Playbook updated with file: path=/jobs/*.sh mode=0755. Tested in UAT. Closing."
+      }
+    ]
+  },
+  {
+    "key": "OPS-3002",
+    "ticket_key": "OPS-3002",
+    "summary": "DBS_DAILY_ARCHIVE — CRLF line endings causing bash command not found error",
+    "status": "Resolved",
+    "priority": "Medium",
+    "description": "Job failed: /jobs/DBS_DAILY_ARCHIVE.sh: line 3: $'\\r': command not found. Script edited on Windows workstation — CRLF line endings introduced. Linux bash rejects carriage return as invalid token.",
+    "root_cause": "Windows CRLF line endings in shell script — bash on Linux rejects carriage return characters",
+    "workaround": "Run: dos2unix /jobs/DBS_DAILY_ARCHIVE.sh on the edge node. Resubmit job.",
+    "fix_details": "Applied dos2unix. Updated .gitattributes: *.sh text eol=lf. Added pre-commit hook to reject CRLF in .sh files.",
+    "labels": ["shell", "crlf", "DBS_DAILY_ARCHIVE", "dos2unix"],
+    "comments": [
+      {
+        "author": "David Lee",
+        "created": "2024-09-21T02:10:00",
+        "body": "Error '$'\\r': command not found' is classic CRLF issue. file /jobs/DBS_DAILY_ARCHIVE.sh shows 'ASCII text, with CRLF line terminators'. Edited on Windows laptop."
+      },
+      {
+        "author": "Sarah Wong",
+        "created": "2024-09-21T02:20:00",
+        "body": "dos2unix applied. Job resubmitted, completed. Adding .gitattributes and pre-commit hook to prevent recurrence."
+      }
+    ]
+  },
+  {
+    "key": "OPS-4001",
+    "ticket_key": "OPS-4001",
+    "summary": "DBS_CREDIT_SCORE_CALC — SyntaxError walrus operator under Python 2.7",
+    "status": "Resolved",
+    "priority": "High",
+    "description": "Credit score calculation job ABEND with SyntaxError: invalid syntax at line 34. Line uses walrus operator (:=) which requires Python 3.8+. TWS JOBCMD set to /usr/bin/python which is Python 2.7.18 on this host.",
+    "root_cause": "TWS JOBCMD pointing to /usr/bin/python (Python 2.7) — walrus operator requires Python 3.8+",
+    "workaround": "None — JOBCMD must be updated before retry.",
+    "fix_details": "Updated TWS job definition JOBCMD to /usr/bin/python3. Verified python3 --version: 3.9.18. Job re-ran successfully.",
+    "labels": ["python", "version-mismatch", "DBS_CREDIT_SCORE_CALC", "syntax-error"],
+    "comments": [
+      {
+        "author": "Emma Chen",
+        "created": "2024-10-30T22:05:00",
+        "body": "SyntaxError at line 34: 'if (result := fetch_score(cust_id)) is not None'. Walrus operator := requires Python 3.8+ (PEP 572). /usr/bin/python on this host is Python 2.7. JOBCMD must point to python3."
+      },
+      {
+        "author": "Frank Lim",
+        "created": "2024-10-30T22:15:00",
+        "body": "Updated TWS job definition. JOBCMD changed from '/usr/bin/python' to '/usr/bin/python3'. Verified: python3 --version = Python 3.9.18 on execution host."
+      },
+      {
+        "author": "Emma Chen",
+        "created": "2024-10-30T22:25:00",
+        "body": "Job completed. Adding to runbook: always check JOBCMD Python version when releasing scripts with new Python 3.x syntax. Closing."
+      }
+    ]
+  },
+  {
+    "key": "OPS-4002",
+    "ticket_key": "OPS-4002",
+    "summary": "DBS_CREDIT_SCORE_CALC — ModuleNotFoundError sklearn — venv not activated in JOBCMD",
+    "status": "Resolved",
+    "priority": "Medium",
+    "description": "Job failed: ModuleNotFoundError: No module named 'sklearn'. scikit-learn installed in /opt/venvs/credit virtualenv but not in system Python3. TWS JOBCMD invokes python3 directly without activating virtualenv.",
+    "root_cause": "TWS JOBCMD not activating virtualenv — scikit-learn only in venv, not system Python3",
+    "workaround": "pip3 install scikit-learn on system Python as temporary fix.",
+    "fix_details": "Updated JOBCMD: source /opt/venvs/credit/bin/activate && python3 /jobs/DBS_CREDIT_SCORE_CALC.py. Venv isolation preferred.",
+    "labels": ["python", "venv", "DBS_CREDIT_SCORE_CALC", "modulenotfounderror"],
+    "comments": [
+      {
+        "author": "Grace Tan",
+        "created": "2024-08-20T10:05:00",
+        "body": "Checked: python3 -c 'import sklearn' = ModuleNotFoundError. But: source /opt/venvs/credit/bin/activate && python3 -c 'import sklearn' = works. Venv has it, system Python3 does not."
+      },
+      {
+        "author": "Daniel Lee",
+        "created": "2024-08-20T10:20:00",
+        "body": "Updated JOBCMD: source /opt/venvs/credit/bin/activate && python3 /jobs/DBS_CREDIT_SCORE_CALC.py --date <DATE>. Tested manually — works."
+      },
+      {
+        "author": "Grace Tan",
+        "created": "2024-08-20T10:35:00",
+        "body": "Job resubmitted and completed. Note for team: all Python batch jobs should activate their venv in JOBCMD. Closing."
+      }
+    ]
+  },
+  {
+    "key": "OPS-5001",
+    "ticket_key": "OPS-5001",
+    "summary": "DBS_FX_SETTLEMENT_FLOW — AWSBHV026E predecessor DBS_FX_NETTING_CALC in HOLD",
+    "status": "Resolved",
+    "priority": "Critical",
+    "description": "FX settlement job DBS_FX_SETTLEMENT_FLOW did not start. AWSBHV026E: job stream FX_SETTLEMENT not submitted. Predecessor DBS_FX_NETTING_CALC is in HOLD state. HOLD placed during prior incident and not released.",
+    "root_cause": "Predecessor DBS_FX_NETTING_CALC in HOLD state — not released after prior incident resolution",
+    "workaround": "Release HOLD via TWS console: conman 'release job;jb=DBS_FX_NETTING_CALC'. Monitor for settlement auto-trigger.",
+    "fix_details": "Released HOLD. Netting completed in 12 minutes. Settlement auto-triggered and completed within SLA. Added HOLD release verification to incident runbook.",
+    "labels": ["tws", "upstream-dependency", "DBS_FX_SETTLEMENT_FLOW", "hold"],
+    "comments": [
+      {
+        "author": "Daniel Lee",
+        "created": "2024-11-02T16:35:00",
+        "body": "Checked TWS console. DBS_FX_NETTING_CALC status: HOLD. Placed by on-call last night for FX source incident. Incident closed but HOLD was never released. Settlement AWSBHV026E is consequence."
+      },
+      {
+        "author": "Emma Chen",
+        "created": "2024-11-02T16:40:00",
+        "body": "Releasing HOLD via conman: 'release job;jb=DBS_FX_NETTING_CALC'. Netting job now RUNNING."
+      },
+      {
+        "author": "Daniel Lee",
+        "created": "2024-11-02T17:05:00",
+        "body": "Netting completed RC=0 at 16:52. Settlement auto-triggered 16:53, completed 17:04. Within SLA. Adding HOLD release checklist to incident closure runbook. Closing."
+      }
+    ]
+  },
+  {
+    "key": "OPS-5002",
+    "ticket_key": "OPS-5002",
+    "summary": "DBS_FX_SETTLEMENT_FLOW — upstream FX feed timeout causing cascade job failure",
+    "status": "Resolved",
+    "priority": "Critical",
+    "description": "DBS_FX_FEED_SG abended (Reuters feed timeout). DBS_FX_NETTING_CALC depends on FX feed completing. Netting not submitted. DBS_FX_SETTLEMENT_FLOW cascade failure. AWSBHV026E.",
+    "root_cause": "Reuters FX rate feed connectivity timeout — cascade failure through netting to settlement",
+    "workaround": "After feed is restored: manually resubmit DBS_FX_FEED_SG, then monitor for netting and settlement auto-trigger.",
+    "fix_details": "Network team fixed Reuters feed routing. Manually resubmitted feed job. Netting and settlement completed. Added monitoring alert for FX feed ABEND.",
+    "labels": ["tws", "upstream-dependency", "DBS_FX_SETTLEMENT_FLOW", "awsbhv026e", "fx-feed"],
+    "comments": [
+      {
+        "author": "Sarah Wong",
+        "created": "2024-09-17T16:50:00",
+        "body": "TWS event log: DBS_FX_FEED_SG ABEND at 16:45, Reuters timeout after 300s. Netting job not submitted. Settlement cascade failure AWSBHV026E."
+      },
+      {
+        "author": "Mike Chen",
+        "created": "2024-09-17T17:00:00",
+        "body": "Network team confirmed Reuters feed routing issue. BGP route flap at 16:42. Feed connectivity restored at 16:58. Manually resubmitting DBS_FX_FEED_SG now."
+      },
+      {
+        "author": "Sarah Wong",
+        "created": "2024-09-17T17:35:00",
+        "body": "Feed completed 17:05. Netting auto-triggered 17:06, completed 17:22. Settlement resubmitted 17:23, completed 17:31. Within extended SLA. Adding SNMP alert for FX feed ABEND. Closing."
+      }
+    ]
+  }
+]

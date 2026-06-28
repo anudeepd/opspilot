@@ -1,0 +1,7 @@
+[2024-08-12 17:35:00] INFO: Starting job DBS_RECON_EOD_SG
+[2024-08-12 17:35:05] INFO: Checking predecessor job DBS_FX_FEED_SG status
+[2024-08-12 17:35:10] INFO: Predecessor status: RUNNING
+[2024-08-12 17:40:00] INFO: Predecessor status: STUCK
+[2024-08-12 17:43:00] ERROR: Predecessor DBS_FX_FEED_SG did not complete successfully
+[2024-08-12 17:43:05] ERROR: AWSBHV026E Job stream RECON_EOD_SG was not submitted — predecessor job DBS_FX_FEED_SG did not complete successfully
+[2024-08-12 17:43:10] INFO: Job terminated with code 1
